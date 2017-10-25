@@ -80,8 +80,8 @@ namespace microsoftTeams
     {
         if (initializeCalled)
         {
-            // Independent components may not know whether the SDK is initialized so may call it to be safe.
-            // Just no-op if that happens to make it easier to use.
+            // Independent components may not know whether the SDK is initialized, so they may call it to be safe.
+            // It's a no-op.
             return;
         }
 
@@ -90,7 +90,7 @@ namespace microsoftTeams
         // Undocumented field used to mock the window for unit tests
         currentWindow = this._window as Window || window;
 
-        // Listen for messages post to our window
+        // Listen for messages posted to our window
         let messageListener = (evt: MessageEvent) => processMessage(evt);
         currentWindow.addEventListener("message", messageListener, false);
 
@@ -101,7 +101,7 @@ namespace microsoftTeams
         try
         {
             // Send the initialized message to any origin since at this point we most likely don't know what our
-            // parent window's origin is yet and this message contains no data that could pose a security risk.
+            // parent window's origin is yet, and this message contains no data that could pose a security risk.
             parentOrigin = "*";
             let messageId = sendMessageRequest(parentWindow, "initialize", [ version ]);
             callbacks[messageId] = (context: string, clientType: string) =>
@@ -157,9 +157,9 @@ namespace microsoftTeams
     }
 
     /**
-     * Registers a handler for when the user changes their theme.
-     * Only one handler may be registered at a time. Subsequent registrations will override the first.
-     * @param handler The handler to invoke when the user changes their theme.
+     * Registers a handler for when a user changes their theme.
+     * Only one handler may be registered at a time; subsequent registrations will override any previous handlers.
+     * @param handler The handler to invoke when a user changes their theme (for example Dark, High Contrast).
      */
     export function registerOnThemeChangeHandler(handler: (theme: string) => void): void
     {
@@ -182,11 +182,11 @@ namespace microsoftTeams
     }
 
     /**
-     * Navigates the frame to a new cross-domain URL. The domain of this URL must match at least one of the
+     * Navigates the tab to another URL. The domain of this URL must match at least one of the
      * valid domains specified in the tab manifest; otherwise, an exception will be thrown. This function only
-     * needs to be used when navigating the frame to a URL in a different domain than the current one in
-     * a way that keeps the app informed of the change and allows the SDK to continue working.
-     * @param url The url to navigate the frame to.
+     * needs to be used when navigating the tab to a URL in a different domain than the current one in
+     * a way that keeps its parent informed of the change and allows the SDK to continue working.
+     * @param url The url to navigate the tab to.
      */
     export function navigateCrossDomain(url: string): void
     {
@@ -203,7 +203,8 @@ namespace microsoftTeams
     }
 
     /**
-     * Shares a deep link a user can use to navigate back to a specific state in this page.
+     * Shares a deep link to navigate back to a specific entity within a tab.
+     * @param deepLinkParameters An {@link DeepLinkParameters} object with information for the entity being linked to.
      */
     export function shareDeepLink (deepLinkParameters: DeepLinkParameters): void
     {
@@ -218,7 +219,7 @@ namespace microsoftTeams
 
     /**
      * Namespace to interact with the settings-specific part of the SDK.
-     * This object is only usable on the settings frame.
+     * This object can only be referenced from the Settings frame, not from within the tab itself.
      */
     export namespace settings
     {
@@ -229,8 +230,8 @@ namespace microsoftTeams
 
         /**
          * Sets the validity state for the settings.
-         * The inital value is false so the user will not be able to save the settings until this is called with true.
-         * @param validityState A value indicating whether the save or remove button is enabled for the user.
+         * The inital value is false, so a user will not be able to save the settings until this is called with true.
+         * @param validityState A value indicating whether the save or remove button is enabled.
          */
         export function setValidityState(validityState: boolean): void
         {
@@ -240,7 +241,7 @@ namespace microsoftTeams
         }
 
         /**
-         * Gets the settings for the current instance.
+         * Gets the settings for the current tab.
          * @param callback The callback to invoke when the {@link Settings} object is retrieved.
          */
         export function getSettings(callback: (settings: Settings) => void): void
@@ -252,10 +253,10 @@ namespace microsoftTeams
         }
 
         /**
-         * Sets the settings for the current instance.
-         * Note that this is an asynchronous operation so there are no guarentees as to when calls
+         * Sets the settings for the current tab.
+         * Note that this is an asynchronous operation: there is no guarentees for when calls
          * to getSettings will reflect the changed state.
-         * @param settings The desired settings for this current instance.
+         * @param settings The {@link Settings} object for this current tab.
          */
         export function setSettings(settings: Settings): void
         {
@@ -265,11 +266,11 @@ namespace microsoftTeams
         }
 
         /**
-         * Registers a handler for when the user attempts to save the settings. This handler should be used
-         * to create or update the underlying resource powering the content.
-         * The object passed to the handler must be used to notify whether to proceed with the save.
-         * Only one handler may be registered at a time. Subsequent registrations will override the first.
-         * @param handler The handler to invoke when the user selects the save button.
+         * Registers a function called when a user saves the tab's settings. This handler should be used
+         * to create or update the underlying resource displayed in the tab.
+         * The {@link SaveEvent} object passed to the function is used to tell the parent window whether to allow the save to succeed.
+         * Only one handler may be registered at a time; subsequent registrations will override any previous handlers.
+         * @param handler The function to call when a user presses the save button.
          */
         export function registerOnSaveHandler(handler: (evt: SaveEvent) => void): void
         {
@@ -279,11 +280,11 @@ namespace microsoftTeams
         }
 
         /**
-         * Registers a handler for when the user attempts to remove the content. This handler should be used
-         * to remove the underlying resource powering the content.
-         * The object passed to the handler must be used to notify whether to proceed with the remove
-         * Only one handler may be registered at a time. Subsequent registrations will override the first.
-         * @param handler The handler to invoke when the user selects the remove button.
+         * Registers a function called when a user removes a tab. This handler should be used
+         * to remove or update the underlying resource displaying the tab's content.
+         * The {@link RemoveEvent} object passed to the function is used to tell the parent window whether to allow the tab to be removed.
+         * Only one handler may be registered at a time; subsequent registrations will override any previous handlers.
+         * @param handler The handler to invoke when a user selects the remove button.
          */
         export function registerOnRemoveHandler(handler: (evt: RemoveEvent) => void): void
         {
@@ -310,27 +311,27 @@ namespace microsoftTeams
         {
             /**
              * A suggested display name for the new content.
-             * In the settings for an existing instance being updated, this call has no effect.
+             * When updating the settings for an existing tab, this call has no effect.
              */
             suggestedDisplayName?: string;
 
             /**
-             * Sets the url to use for the content of this instance.
+             * Sets the URL for the contents of a tab.
              */
             contentUrl: string;
 
             /**
-             * Sets the remove URL for the remove config experience
+             * Sets the URL for the "remove tab" user interface.
              */
             removeUrl?: string;
 
             /**
-             * Sets the url to use for the external link to view the underlying resource in a browser.
+             * Sets the URL to use for the external link to view the contents of a tab in a browser.
              */
             websiteUrl?: string;
 
             /**
-             * The developer-defined unique id for the entity this content points to.
+             * The developer-defined unique id for the entity a tab refers to.
              */
             entityId: string;
         }
@@ -338,12 +339,13 @@ namespace microsoftTeams
         export interface SaveEvent
         {
             /**
-             * Notifies that the underlying resource has been created and the settings may be saved.
+             * Notifies the parent window that the tab settings can be saved.
              */
             notifySuccess(): void;
 
             /**
-             * Notifies that the underlying resource creation failed and that the settings may not be saved.
+             * Notifies the parent window that the tab settings cannot be saved. For example, perhaps the tab is designed to show
+             * a newly-created document or entity, and the attempt to create that document or entity failed.
              * @param reason Specifies a reason for the failure. If provided, this string is displayed to the user. Otherwise a generic error is displayed.
              */
             notifyFailure(reason?: string): void;
@@ -352,12 +354,12 @@ namespace microsoftTeams
         export interface RemoveEvent
         {
             /**
-             * Notifies that the underlying resource has been removed and the content may be removed.
+             * Notifies that the underlying resource displayed in the tab has been removed and the tab may be removed.
              */
             notifySuccess(): void;
 
             /**
-             * Notifies that the underlying resource removal failed and that the content may not be removed.
+             * Notifies that the removal of the underlying resource displayed in in the tab failed and that the tab cannot be removed.
              * @param reason Specifies a reason for the failure. If provided, this string is displayed to the user. Otherwise a generic error is displayed.
              */
             notifyFailure(reason?: string): void;
@@ -452,8 +454,8 @@ namespace microsoftTeams
         handlers["authentication.authenticate.failure"] = handleFailure;
 
         /**
-         * Initiates an authentication request which pops up a new windows with the specified settings.
-         * @param authenticateParameters A set of values that configure the authentication popup.
+         * Initiates an authentication request which pops up a new window with the specified settings.
+         * @param authenticateParameters An {@link AuthenticateParameters} object used to configure the authentication popup.
          */
         export function authenticate(authenticateParameters: AuthenticateParameters): void
         {
@@ -461,11 +463,11 @@ namespace microsoftTeams
 
             if (hostClientType === hostClientTypes.desktop)
             {
-                // Convert any relative URLs into absolute ones before sending them over to our parent window
+                // Convert any relative URLs into absolute ones before sending them to the parent window
                 let link = document.createElement("a");
                 link.href = authenticateParameters.url;
 
-                // Ask our parent window to open an authentication window with the parameters provided by the caller
+                // Ask the parent window to open an authentication window with the parameters provided by the caller
                 let messageId = sendMessageRequest(parentWindow, "authentication.authenticate", [
                     link.href,
                     authenticateParameters.width,
@@ -493,7 +495,7 @@ namespace microsoftTeams
         /**
          * Requests an AAD token to be issued on behalf of the app. The token is acquired from the cache
          * if it is not expired. Otherwise a request will be sent to AAD to obtain a new token.
-         * @param authTokenRequest A set of values that configure the token request.
+         * @param authTokenRequest An {@link AuthenticateParameters} object used to configure the token request.
          */
         export function getAuthToken(authTokenRequest: AuthTokenRequest): void
         {
@@ -565,11 +567,11 @@ namespace microsoftTeams
             let width = authParams.width || 600;
             let height = authParams.height || 400;
 
-            // Ensure that the new window is always smaller than our app's window so that it never fully covers up our app
+            // Ensure that the new window is always smaller than the parent window so that it never fully covers up the parent window.
             width = Math.min(width, (currentWindow.outerWidth - 400));
             height = Math.min(height, (currentWindow.outerHeight - 200));
 
-            // Convert any relative URLs into absolute ones before sending them over to our parent window
+            // Convert any relative URLs into absolute ones before sending them over to the parent window.
             let link = document.createElement("a");
             link.href = authParams.url;
 
@@ -656,7 +658,7 @@ namespace microsoftTeams
          * Notifies the frame that initiated this authentication request that the request was successful.
          * This function is only usable on the authentication window.
          * This call causes the authentication window to be closed.
-         * @param result Specifies a result for the authentication. If specified, the frame which initiated the authentication popup will recieve this value in their callback.
+         * @param result Specifies a result for the authentication. If specified, the frame which initiated the authentication popup will recieve this value in its callback function.
          */
         export function notifySuccess(result?: string): void
         {
@@ -672,7 +674,7 @@ namespace microsoftTeams
          * Notifies the frame that initiated this authentication request that the request failed.
          * This function is only usable on the authentication window.
          * This call causes the authentication window to be closed.
-         * @param reason Specifies a reason for the authentication failure. If specified, the frame which initiated the authentication popup will recieve this value in their callback.
+         * @param reason Specifies a reason for the authentication failure. If specified, the frame which initiated the authentication popup will recieve this value in its callback function.
          */
         export function notifyFailure(reason?: string): void
         {
@@ -719,27 +721,27 @@ namespace microsoftTeams
         export interface AuthenticateParameters
         {
             /**
-             * The url for the authentication popup
+             * The url for the authentication popup.
              */
             url: string;
 
             /**
-             * The preferred width for the popup. Note that this value may be ignored if outside the acceptable bounds.
+             * The preferred width for the popup. This value will be ignored if it would cause the popup to be too wide.
              */
             width?: number;
 
             /**
-             * The preferred height for the popup. Note that this value may be ignored if outside the acceptable bounds.
+             * The preferred height for the popup. This value will be ignored if it would cause the popup to be too tall.
              */
             height?: number;
 
             /**
-             * A function which is called if the authentication succeeds with the result returned from the authentication popup.
+             * A function called if the authentication succeeds, including the result returned from the authentication popup.
              */
             successCallback?: (result?: string) => void;
 
             /**
-             * A function which is called if the authentication fails with the reason for the failure returned from the authentication popup.
+             * A function called if the authentication fails, including the reason for the failure returned from the authentication popup.
              */
             failureCallback?: (reason?: string) => void;
         }
@@ -752,12 +754,12 @@ namespace microsoftTeams
             resources: string[];
 
             /**
-             * A function which is called if the token request succeeds with the resulting token.
+             * A function called if the token request succeeds, including the resulting token.
              */
             successCallback?: (token: string) => void;
 
             /**
-             * A function which is called if the token request fails with the reason for the failure.
+             * A function called if the token request fails, including the reason for the failure.
              */
             failureCallback?: (reason: string) => void;
         }
@@ -765,12 +767,12 @@ namespace microsoftTeams
         export interface UserRequest
         {
             /**
-             * A function which is called if the token request succeeds with the resulting token.
+             * A function called if the token request succeeds, including the resulting token.
              */
             successCallback?: (user: UserProfile) => void;
 
             /**
-             * A function which is called if the token request fails with the reason for the failure.
+             * A function is called if the token request fails, including the reason for the failure.
              */
             failureCallback?: (reason: string) => void;
         }
@@ -789,43 +791,43 @@ namespace microsoftTeams
             amr: string[];
 
             /**
-             * Stores the time at which the token was issued. It is often used to measure token freshness.
+             * Stores the time at which the token was issued. It is often used to determine if the token is still valid or may have expired.
              */
             iat: number;
 
             /**
-             * Identifies the security token service (STS) that constructs and returns the token. In the tokens that Azure AD
-             * returns, the issuer is sts.windows.net. The GUID in the Issuer claim value is the tenant ID of the Azure AD
+             * Identifies the security token service (STS) that constructs and returns the token. In the tokens that Azure Active Directory (AAD)
+             * returns, the issuer is sts.windows.net. The GUID in the Issuer claim value is the tenant ID of the AAD
              * directory. The tenant ID is an immutable and reliable identifier of the directory.
              */
             iss: string;
 
             /**
-             * Provides the last name, surname, or family name of the user as defined in the Azure AD user object.
+             * Provides the last name, surname, or family name of a user as defined in the Azure Active Directory user object.
              */
             family_name: string;
 
             /**
-             * Provides the first or "given" name of the user, as set on the Azure AD user object.
+             * Provides the first or "given" name of the user, as set on the Azure Active Directory user object.
              */
             given_name: string;
 
             /**
-             * Provides a human readable value that identifies the subject of the token. This value is not guaranteed to
+             * Provides a human-readable value identifying the subject of the token. This value is not guaranteed to
              * be unique within a tenant and is designed to be used only for display purposes.
              */
             unique_name: string;
 
             /**
-             * Contains a unique identifier of an object in Azure AD. This value is immutable and cannot be reassigned or
-             * reused. Use the object ID to identify an object in queries to Azure AD.
+             * Contains a unique identifier of an object in Azure Active Directory (AAD). This value is immutable and cannot be reassigned or
+             * reused. Use the object ID to identify an object in queries to AAD.
              */
             oid: string;
 
             /**
              * Identifies the principal about which the token asserts information, such as the user of an application.
              * This value is immutable and cannot be reassigned or reused, so it can be used to perform authorization
-             * checks safely. Because the subject is always present in the tokens the Azure AD issues, we recommended
+             * checks safely. Because the subject is always present in the tokens the Azure Active Directory issues, we recommended
              * using this value in a general purpose authorization system.
              */
             sub: string;
@@ -833,7 +835,7 @@ namespace microsoftTeams
             /**
              * An immutable, non-reusable identifier that identifies the directory tenant that issued the token. You can
              * use this value to access tenant-specific directory resources in a multi-tenant application. For example,
-             * you can use this value to identify the tenant in a call to the Graph API.
+             * you can use this value to identify the tenant in a call to the Microsoft Graph API.
              */
             tid: string;
 
@@ -841,13 +843,13 @@ namespace microsoftTeams
              * Defines the time interval within which a token is valid. The service that validates the token should verify
              * that the current date is within the token lifetime, else it should reject the token. The service might allow
              * for up to five minutes beyond the token lifetime range to account for any differences in clock time ("time
-             * skew") between Azure AD and the service.
+             * skew") between Azure Active Directory and the service.
              */
             exp: number;
             nbf: number;
 
             /**
-             * Stores the user name of the user principal.
+             * The Universal Principal Name of a user.
              */
             upn: string;
 
@@ -861,7 +863,7 @@ namespace microsoftTeams
     export interface Context
     {
         /**
-         * The O365 group id for the team with which the content is associated.
+         * The Office 365 group id for the team with which the content is associated.
          * This field is only available when the identity permission is requested in the manifest.
          */
         groupId?: string;
@@ -889,12 +891,12 @@ namespace microsoftTeams
 
         /**
          * The current locale that the user has configured for the app formatted as
-         * languageId-countryId (e.g. en-us).
+         * languageId-countryId (e.g. en-us). The languageId value follows the ISO 639-1 standard; the countryId follows the ISO-3166-1 standard.
          */
         locale: string;
 
         /**
-         * The current user's upn.
+         * The current user's Universal Principal Name (UPN).
          * As a malicious party can host content in a malicious browser, this value should only
          * be used as a hint as to who the user is and never as proof of identity.
          * This field is only available when the identity permission is requested in the manifest.
@@ -902,7 +904,7 @@ namespace microsoftTeams
         upn?: string;
 
         /**
-         * The current user's AAD tenant id.
+         * The current user's Azure Active Directory tenant id.
          * As a malicious party can host content in a malicious browser, this value should only
          * be used as a hint as to who the user is and never as proof of identity.
          * This field is only available when the identity permission is requested in the manifest.
